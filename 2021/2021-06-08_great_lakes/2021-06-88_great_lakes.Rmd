@@ -14,8 +14,6 @@ library(tidyverse)
 library(scales)
 library(ggdist)
 library(ggtext)
-library(cowplot)
-library(magick)
 
 theme_set(theme_minimal(base_family = "Roboto Condensed",
                         base_size = 12))
