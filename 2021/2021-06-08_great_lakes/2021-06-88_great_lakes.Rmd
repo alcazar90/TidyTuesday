@@ -113,7 +113,7 @@ plot <- by_lake_species %>%
 
 # save plot
 plot +
-  ggsave("great_lake_productioin.png", limitsize=FALSE,
+  ggsave("great_lake_production.png", limitsize=FALSE,
          dpi = 320, units = "in")
 ```
 
