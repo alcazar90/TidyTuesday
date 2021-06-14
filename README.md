@@ -7,7 +7,7 @@
 A weekly social data project in R aims to wrangle data, aggregate and make informative and friendly visualisations! Further information about the [#TidyTuesday challenge here](https://github.com/rfordatascience/tidytuesday).
 
 This repo contains the code and plots of my #TidyTuesday challenges contributions.
-There is a `README.md` in each challenge highlighting stuff that I learned during the process :point_up:.
+There is a `README.md` in each challenge folder highlighting stuff that I learned during the process :point_up:.
 
 <a class="twitter-follow-button"
   href="https://twitter.com/vamos_alcazar">
