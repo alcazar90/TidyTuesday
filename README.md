@@ -3,18 +3,20 @@
   :chart_with_upwards_trend: :cactus: :chart_with_downwards_trend:
 </h1>
 
-A weekly social data project in R with the aim to wrangling data, aggregate and make nice visualizations! Further information about [#TidyTuesday challenge](https://github.com/rfordatascience/tidytuesday).
+
+A weekly social data project in R aims to wrangle data, aggregate and make informative and friendly visualisations! Further information about the [#TidyTuesday challenge here](https://github.com/rfordatascience/tidytuesday).
 
 This repo contains the code and plots of my #TidyTuesday challenges contributions.
 There is a `README.md` in each challenge highlighting stuff that I learned during the process :point_up:.
 
-
-<a href="https://twitter.com/vamos_alcazar?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @vamos_alcazar</a>
+<a class="twitter-follow-button"
+  href="https://twitter.com/vamos_alcazar">
+Follow @vamos_alcazar</a>
 
 ------
 
 <details>
-  <summary>Click to expand my #TidyTuesday submissions in chronological order</summary>
+  <summary>Click to expand my #TidyTuesday submissions</summary>
   
 <!-- toc -->
 * **Challenges 2021**
