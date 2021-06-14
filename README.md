@@ -11,8 +11,8 @@ This repo contains the code and plots of my #TidyTuesday challenges contribution
   <summary>Click to expand my #TidyTuesday submissions in chronological order</summary>
 <!-- toc -->
 * **Challenges 2021**
-  - 2021/23 [:punch: Survivor TV Show :tv:](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes)
-  - 2021/24 [:fish: Great Lakes Fish :tropical_fish:](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes)
+  - 2021/23 :punch:[Survivor TV Show](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes):tv:
+  - 2021/24 :fish:[Great Lakes Fish](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes):tropical_fish:
 <!-- tocstop -->
 </details>
 
