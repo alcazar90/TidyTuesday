@@ -1,0 +1,315 @@
+---
+title: "TidyTuesday 2021-06-08 - Great Lakes Fish data!"
+author: "Cristóbal Alcázar"
+output: html_document
+---
+    
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r toy-tools, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(scales)
+library(ggdist)
+library(ggtext)
+library(cowplot)
+library(magick)
+
+theme_set(theme_minimal(base_family = "Roboto Condensed",
+                        base_size = 12))
+```
+
+## Great Lake Tidy Tuesday
+
+```{r download-data}
+fishing <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-06-08/fishing.csv')
+stocked <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-06-08/stocked.csv')
+
+# understand better the regular expression with group
+fishing <- fishing %>% 
+  filter(values >= 0) %>% 
+  mutate(species = str_replace(str_to_title(species), "([^s])s$", "\\1"))
+
+# create a summarizing fishing to reduce boilerplate code
+# reference: David Robinson tidytuesday screencast
+summarize_fishing <- function(tbl) {
+  tbl %>% 
+    summarize(n_obs = n(),
+              total_production = sum(values, na.rm = TRUE)) %>% 
+    arrange(desc(total_production))
+}
+```
+
+### Tidytuesday plot
+
+```{r}
+# create a categorical variable to group block of 15 years
+# aggregate fishing production by custom 'by_period', lake and species
+by_lake_species <- fishing %>%   
+  filter(!str_detect(region, "Total")) %>% 
+  mutate(species = fct_lump(species, 100, w = values),
+         species = fct_reorder(species, values, sum),
+         lake = fct_reorder(lake, values, sum, .desc = TRUE),
+         by_period = case_when(between(year, 2000, 2015) ~ "2000-2015",
+                               between(year, 1984, 1999) ~ "1984-1999",
+                                                    TRUE ~ "<1984")) %>% 
+  group_by(by_period, lake, species) %>% 
+  summarize_fishing() 
+
+
+# create a function to display labels
+display_labels <- function(x) {
+  ifelse(x/1e3 < 1, "1 >", scales::comma(x/1e3, accuracy = 1))
+}
+
+# normalize total production and plot just the last two 15 years blocks
+plot <- by_lake_species %>% 
+  filter(by_period != "<1984") %>% 
+  group_by(by_period, lake) %>% 
+  mutate(pct = total_production / sum(total_production)) %>% 
+  ggplot(aes(lake, species, fill = pct)) +
+  geom_tile() + 
+  geom_text(aes(label = display_labels(total_production)),
+             size = 2.8,
+             colour = "black") +
+  scale_fill_gradient2(high = "#3B9AB2") +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  facet_wrap(~ by_period) +
+  coord_equal(ratio = 1/4) +
+  # title reference: https://github.com/wilkelab/ggtext
+  labs(x = "Great Lakes",
+       y = NULL,
+       fill = "% of lake's\nproduction",
+       caption = "**Source:** Great Lakes Fishery Commission<br>
+       Graphic: *@vamos_alcazar*",
+       title =  "<b><span style = 'color: #3B9AB2;'>Commercial Fish Production by species in The Great Lakes.</b></span><br>
+    <span style = 'font-size:10pt'>Comparison between the last two 15 years blocks reported in data. Each column is a great lake in which the **production % distributed by species**. The value labels correspond <span style = 'color:#3B9AB2;'>to the commercial fish production **in millions of pounds**.</span><br><span style ='font-size:8pt'>*Note: empty spaces mean no production*</span>.") +
+  theme(panel.grid = element_blank(),
+        plot.margin = margin(25, 15, 15, 25),
+        plot.background = element_rect(color = "#3B9AB2", fill = "#E1BD6D"),
+        axis.text.x = element_text(angle = 45, vjust = .7),
+        plot.caption = element_markdown(lineheight = 1.2),
+        axis.title = element_text(color = "#3B9AB2", face = "bold"),
+        legend.title = element_text(color = "#3B9AB2", face = "bold"),
+        # reference: https://github.com/wilkelab/ggtext
+        plot.title = element_textbox_simple(
+             size = 13,
+             lineheight = 1,
+             padding = margin(5.5, 5.5, 5.5, 5.5),
+             margin = margin(0, 0, 5.5, 0),
+             fill = "cornsilk"
+        ),
+        strip.background = element_blank(),
+        strip.text = element_textbox(
+          size = 10,
+          color = "white", fill = "#3B9AB2", box.color = "#4A618C",
+          halign = 0.5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
+        padding = margin(2, 0, 1, 0), margin = margin(3, 3, 3, 3))
+    ) 
+
+
+# save plot
+plot +
+  ggsave("great_lake_productioin.png", limitsize=FALSE,
+         dpi = 320, units = "in")
+```
+
+### Others 
+
+
+```{r}
+# grand_total distribution 
+fishing %>% 
+  ggplot(aes(grand_total + 1)) +
+  geom_histogram() +
+  scale_x_log10()
+
+# values distribution 
+fishing %>% 
+  ggplot(aes(values + 1)) +
+  geom_histogram() +
+  scale_x_log10()
+
+# how many lakes
+fishing %>% 
+  count(lake)
+
+fishing %>% 
+  count(species, sort = TRUE)
+
+fishing %>% 
+  filter(year == 2000, lake == "Erie", species == "Carp")
+
+fishing %>% 
+  filter(year == 1990, lake == "Erie", species == "Lake Whitefish")
+
+# grand_total is the same given any year, lake and species combination?
+fishing %>% 
+  group_by(year, lake, species) %>% 
+  summarize(total_values = sum(values, na.rm = TRUE),
+            first_grand_total = min(grand_total, na.rm = TRUE),
+            n_grand_total = n_distinct(grand_total, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  count(n_grand_total)
+
+
+
+fishing %>% 
+  group_by(year) %>% 
+  summarize(total_production = sum(values, na.rm = TRUE)) %>% 
+  ggplot(aes(year, total_production)) +
+  geom_line()
+
+
+fishing %>% 
+  group_by(year) %>% 
+  summarize_fishing() %>% 
+  ggplot(aes(year, total_production)) +
+  geom_line()
+
+
+fishing %>% 
+  group_by(decade = 10 * year %/% 10) %>% 
+  summarize_fishing() %>% 
+  ggplot(aes(decade, total_production)) +
+  geom_col() + 
+  scale_y_continuous(labels = comma_format()) +
+  labs(
+    x = "Decade",
+    y = "Total production per decade\n(thousand of pounds)")
+
+
+fishing %>% 
+  group_by(species) %>% 
+  summarize_fishing()
+
+fishing %>% 
+  mutate(species = fct_lump(species, 5, w = values),
+         species = fct_reorder(species, values, sum)) %>% 
+  group_by(decade = 10 * year %/% 10,
+           species) %>% 
+  summarize_fishing() %>% 
+  ggplot(aes(decade, total_production, fill = species)) +
+  geom_col() + 
+  scale_y_continuous(labels = comma_format()) +
+  facet_wrap(~ species) +
+  labs(
+    x = "Decade",
+    y = "Total production per decade\n(thousand of pounds)")
+
+
+fishing %>% 
+  mutate(species = fct_lump(species, 15, w = values),
+         species = fct_reorder(species, values, sum, .desc = TRUE)) %>% 
+  group_by(decade = 10 * year %/% 10,
+           species) %>% 
+  summarize_fishing() %>% 
+  ggplot(aes(decade, total_production, fill = species)) +
+  geom_area() + 
+  scale_y_continuous(labels = comma_format()) +
+  facet_wrap(~ species) +
+  theme(legend.position = "none") +
+  labs(
+    x = "Decade",
+    y = "Total production per decade\n(thousand of pounds)",
+    title = "Production of 9 common fish in Great Lakes over time")
+
+fishing %>% 
+  group_by(species, year) %>% 
+  summarize_fishing() %>% 
+  summarize(total_production = sum(total_production),
+            peak_year = year[which.max(total_production)]) %>% 
+  arrange(desc(total_production)) %>% 
+  head(25) %>% 
+  mutate(species = fct_reorder(species, peak_year)) %>% 
+  ggplot(aes(peak_year, species)) +
+  geom_point(aes(size = total_production)) +
+  scale_size_continuous(labels = comma_format()) +
+  labs(x = "Year of peak production",
+       y = "",
+       size = "All-time production")
+```
+
+```{r}
+# Show species of the year
+fishing %>% 
+  filter(!str_detect(region, "Total")) %>% 
+  group_by(species, year) %>% 
+  summarize_fishing() %>% 
+  summarize(total_production = sum(total_production),
+            peak_year = year[which.max(total_production)]) %>% 
+  arrange(desc(total_production)) %>% 
+  head(10) %>% 
+  mutate(species = fct_reorder(species, peak_year)) %>% 
+  ggplot(aes(peak_year, species)) +
+  geom_point(aes(size = total_production)) +
+  scale_size_continuous(labels = comma_format()) +
+  labs(x = "Year of peak production",
+       y = "",
+       size = "All-time production")
+
+
+
+display_sample_size <- function(x) {
+ return(data.frame(y = max(x),
+                   label = paste0("n = ", length(x))))
+}
+
+fishing %>% 
+  filter(!str_detect(region, "Total"),
+         !is.na(values),
+         values > 0,
+         year >= 2000) %>% 
+  mutate(species = fct_lump(species, 4, w = values),
+         species = fct_reorder(species, log10(values), .fun = 'median',
+                               .desc = FALSE)) %>% 
+  ggplot(aes(species, values, fill = species), colour = "black") +
+  ggdist::stat_eye(
+    adjust = .5,
+    width = .6,
+    .width = 0,
+    justification = -.3, 
+    point_colour = NA
+  ) +
+  stat_summary(
+    geom = "text",
+    fun.data = display_sample_size,
+    family = "Roboto Condensed",
+    size = 4,
+    aes(color = species)
+  ) +
+  scale_fill_manual(values = wesanderson::wes_palette(5, name = "Zissou1",
+                                                      type = "discrete")) +
+  scale_y_log10(
+   breaks = scales::trans_breaks("log10", function(x) 10^x),
+   labels = scales::trans_format("log10", scales::math_format(10^.x))
+  ) +
+  theme(legend.position = "none") +
+  coord_flip() +
+  labs(x = NULL,
+       y = NULL,
+       title = "Production distribution by species") 
+```
+
+
+
+```{r}
+fishing %>% 
+  mutate(lake = fct_reorder(lake, values, sum, .desc = TRUE)) %>% 
+  group_by(decade = 10 * year %/% 10, lake) %>% 
+  summarize_fishing() %>% 
+  ggplot(aes(decade, total_production, fill = lake)) +
+  geom_area() + 
+  scale_y_continuous(labels = comma_format()) +
+  facet_wrap(~ lake) +
+  theme(legend.position = "none") +
+  labs(
+    x = "Decade",
+    y = "Total production per decade\n(thousand of pounds)",
+    title = "Production across the Great Lakes over time")
+```
+
+
