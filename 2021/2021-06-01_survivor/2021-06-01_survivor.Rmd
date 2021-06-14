@@ -1,0 +1,116 @@
+---
+title: "TidyTuesday 2021-06-01 - Survivor TV Show data!"
+author: "Cristóbal Alcázar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r toy-tools, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(cowplot)
+library(magick)
+
+theme_set(theme_minimal(base_family = "Roboto Condensed", base_size = 10))
+theme_update(
+  plot.margin = margin(25, 15, 15, 25),
+  plot.background = element_rect(color = "#FFFCFC", fill = "#000000"),
+  
+  panel.grid.major.x = element_blank(),
+  panel.grid.major.y = element_blank(),
+  panel.grid.minor = element_blank(),
+  
+  axis.text.x = element_text(color = "white"),
+  axis.text.y = element_text(color = "white"),
+  axis.title = element_text(color = "white"),
+  
+  
+  legend.text = element_text(color = "white", size = 12),
+  legend.title = element_text(color = "white"),
+  
+  plot.title = element_text(color = "white", face = "bold", size = 17.45),
+  plot.subtitle = element_text(color = "white", size = 10.8),
+  plot.caption = element_text(color = "white", 
+                              size = 10.5, margin = margin(t = 20, b = 0, r = 15))
+)
+```
+
+
+```{r download-data}
+# Or read in the data manually
+summary <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-06-01/summary.csv')
+```
+
+
+### Visualize the lifecycle of the Survival tv show across time!
+
+```{r}
+# read jumping man image!
+img <- image_read("jumping.png") %>% 
+  image_colorize(100, "#9d1584") %>% 
+  image_crop("450x450+50") 
+
+# rotate jumping man image
+img2 <- image_read("jumping.png") %>% 
+  image_colorize(100, "#9d1584") %>% 
+  image_crop("450x450+50") %>% 
+  image_rotate(22) %>% 
+  image_fill(color = "none")
+```
+
+```{r, eval=FALSE}
+summary %>% 
+  mutate(cut_season = case_when(season <= 10 ~ "1-stage",
+                                TRUE ~ "2-stage")) %>% 
+  group_by(cut_season) %>% 
+  summarize(total_final = mean(viewers_finale),
+            total_premiere = mean(viewers_premier)) %>% 
+  pivot_longer(-cut_season) %>% 
+  mutate(name = str_replace(name, "total_", "")) %>% 
+  group_by(name) %>% 
+  summarise(pct_premiere = value / sum(value))
+```
+
+```{r}
+p <- summary %>% 
+  select(season, viewers_premier, viewers_finale) %>% 
+  pivot_longer(viewers_premier:viewers_finale,
+               names_to = "viewers",
+               values_to = "rating") %>% 
+  mutate(viewers = str_replace(viewers, "viewers_", "")) %>% 
+  ggplot +
+  geom_point(aes(season, rating, colour = viewers),
+            size = 1) +
+  geom_line(aes(season, rating, colour = viewers),
+            size = 1.2,
+            alpha = .4) +
+  scale_colour_manual(values = c("pink", "#9d1584")) +
+  geom_vline(aes(xintercept = 10),
+             colour = "white") +
+  geom_segment(aes(x = 10, y = 45, xend = 15, yend = 45),
+               colour = "white") +
+  annotate("text", x = 21, y = 48, family = "Roboto Condensed", 
+           colour = "white", size = 3.2,
+           label = "After the ten seasons\nthe show never was the same") +
+  labs(title = "The lifecycle of the Survival tv show across season!",
+       subtitle = "Comparison between premier and finale rating in millions",
+       colour = NULL,
+       caption = "Source: survivoR package\n by: @vamos_alcazar",
+       x = "# Season",
+       y= "Rating") 
+
+plot <- ggdraw() +
+  draw_plot(p) +
+  draw_image(img, x = 0, scale = 0.05,
+             hjust = 0.12,
+             vjust = -0.23) +
+  draw_image(img2, x = 0, scale = 0.08,
+             hjust = 0.12,
+             vjust = -0.12)
+
+ggsave("lifecycle_survival_show.png", plot, limitsize=FALSE)
+```
+
+
