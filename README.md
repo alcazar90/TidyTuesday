@@ -1,4 +1,7 @@
-# TidyTuesday Contributions :chart_with_upwards_trend: :cactus: :chart_with_downwards_trend:
+<h1 style="font-weight:normal" align="center">
+  &nbsp;#TidyTuesday Contributions&nbsp;<br>
+  :chart_with_upwards_trend: :cactus: :chart_with_downwards_trend:
+</h1>
 
 A weekly social data project in R with the aim to wrangling data, aggregate and make nice visualizations! Further information about [#TidyTuesday challenge](https://github.com/rfordatascience/tidytuesday).
 
@@ -6,7 +9,7 @@ This repo contains the code and plots of my #TidyTuesday challenges contribution
 There is a `README.md` in each challenge highlighting stuff that I learned during the process :point_up:.
 
 
-<a href="https://twitter.com/vamos_alcazar?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @vamos_alcazar</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<a href="https://twitter.com/vamos_alcazar?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @vamos_alcazar</a>
 
 ------
 
