@@ -21,12 +21,17 @@ Follow @vamos_alcazar</a>
 <!-- toc -->
 * **Challenges 2021**
   - 2021/23 [🎥 Survivor TV Show👊](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-01_survivor)
-  - 2021/24 [🐠Great Lakes Fish🐠](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes)
+  - 2021/24 [🐠 Great Lakes Fish🐠](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes)
+  - 2021/25 [💭 #DuBoisChallenge tweets🗽](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-15_duBoisChallenge)
 <!-- tocstop -->
 
 </details>
 
 ***
+
+### [2021/25](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-15_duBoisChallenge) WEB DU Bois and Juneteenth by [`#DuBoisChallenge` tweets](https://public.tableau.com/app/profile/sekou.tyler/viz/DuBoisChalllenge2021TwitterMetrics/DuBoisChallenge2021TwitterActivity)
+![./2021/2021-06-15_duBoisChallenge/2021-06-15_duBoisChallenge.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-15_duBoisChallenge/2021-06-15_duBoisChallenge.png)
+
 
 ### [2021/24](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes) :fish: Great Lakes Fish by [Great Lakes Fishery Commission](http://www.glfc.org/great-lakes-databases.php)
 ![./2021/2021-06-08_great_lakes/great_lake_production.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-08_great_lakes/great_lake_production.png)
