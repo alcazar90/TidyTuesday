@@ -26,6 +26,10 @@ legend title above w.r.t. the mapping, for example.
     )
     ```
 
+Questions:
+
+1. 
+
 ![./2021/2021-06-15_duBoisChallenge/2021-06-15_duBoisChallenge.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-15_duBoisChallenge/2021-06-15_duBoisChallenge.png)
 
 
