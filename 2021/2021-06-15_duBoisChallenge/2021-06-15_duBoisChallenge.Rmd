@@ -1,0 +1,295 @@
+---
+title: "TidyTuesday 2021-06-15 - DuBoisChallenge"
+author: "Cristóbal Alcázar"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+
+```{r toy-tools, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggtext)
+library(tidytext)
+library(ggwordcloud)
+library(patchwork)
+library(magick)
+
+theme_set(theme_minimal(base_family = "Roboto Condensed",
+                        base_size = 12))
+```
+
+
+```{r download-data}
+tweets <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-06-15/tweets.csv')
+```
+
+## Visualising #DuBoisChallenge tweets
+
+
+```{r}
+# 0. Data preparation for visualize tweet's activity
+# ------------------------------------------------------------------------------
+# Highlight the days in which are popular tweets 
+popular_tweets <- tweets %>% 
+  filter(like_count >= 50) %>% 
+  mutate(date = lubridate::as_date(datetime)) %>% 
+  select(date, like_count)
+ 
+# Count the tweets per day
+tweets_per_day <- tweets %>% 
+  mutate(date = lubridate::as_date(datetime)) %>% 
+  group_by(date) %>% 
+  count(sort = TRUE) %>% 
+  ungroup()
+
+
+# Make a wordcloud
+set.seed(42)
+top_wordCloud <- tweets %>% 
+  select(content) %>% 
+  unnest_tokens(word, content) %>% 
+  anti_join(stop_words, by = "word") %>% 
+  group_by(word) %>% 
+  count(sort = TRUE) %>% 
+  ungroup() %>% 
+  slice(1:50) %>% 
+  mutate(angle = 90 * sample(c(0,1),n(), replace=TRUE, prob=c(60,40))) %>% 
+  ggplot(aes(label=word, size=n, angle=angle)) +
+  geom_text_wordcloud(colour="#c51f5d") +
+  scale_size_area(max_size = 8) +
+  theme(plot.background = element_rect(color = "#FFFCFC", fill = "#141d26"))
+                  
+
+
+# 1. polar-tweet activty using geom_step [BASE PLOT]
+# ------------------------------------------------------------------------------
+base_plot <- tweets_per_day %>% 
+  filter(date < "2021-05-01") %>% 
+  ggplot(aes(date)) +
+  # trend following the chaning in the # of tweets
+  geom_step(aes(y=n, colour=n),
+            size=0.8) +
+  expand_limits(y = 120) +
+  # time orientation arrow to read the plot (geom_segment + coord_polar = geom_curve):
+  geom_segment(aes(x=lubridate::as_date("2021-04-10"), xend=lubridate::as_date("2021-05-01"),
+                   y=100, yend=100),
+               size=0.05,
+               lineend = "round",
+               linejoin = "bevel",
+               arrow = arrow(length = unit(0.15, "inch")),
+               colour = "orange") +
+  # inner circle (induce -Inf / Inf)
+  geom_segment(aes(x = min(date), y=500, xend=max(date),yend=500),
+               colour = "#657786",
+               size = 0.7,
+               data = filter(tweets_per_day, between(date, "2021-04-15", "2021-05-07"))) +
+  # using twitter night-mode colours
+  scale_colour_gradient2(low = "white", mid = "#243447", high = "#c51f5d") +
+  # introduce tweets with a lot of likes
+  geom_jitter(aes(y=1200, size = like_count), 
+              shape = 21,
+              fill = "#c51f5d",
+              colour = "white",
+              alpha = .6,
+              data = popular_tweets) +
+  # use log scale
+  scale_y_log10() +
+  # make everything polar 
+  coord_polar() +
+  labs(x = NULL,
+       y = NULL,
+       title="Visualising #DuBoisChallenge tweets",
+       # subtitle="A #TidyTuesday week 8-2021",
+       size = "                Tweets with\n           more than X likes:",
+       colour = "# of tweets",
+       caption = "<br>**Source:** #DuBoisChallenge tweets<br>
+                 Graphic: *@vamos_alcazar*") +
+  theme(
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        
+        plot.margin = margin(25, 50, 15, 25),
+        plot.background = element_rect(color = "#FFFCFC", fill = "#141d26"),
+        plot.title = element_text(colour = "white", size = 18),
+        plot.subtitle = element_text(colour = "white", size = 14),
+        plot.caption = element_markdown(colour = "white", lineheight = 1.2),
+        
+        axis.text = element_text(colour = "white", size=12, vjust=.5),
+        axis.text.y = element_blank(),
+        
+        legend.title = element_text(colour = "white"),
+        legend.text = element_text(colour = "white"),
+        legend.position = "bottom",
+        legend.box = "horizontal"
+        ) +
+  guides(
+         colour = guide_colorbar(title.position = "top",
+                                 title.hjust = 0.5),
+         size = guide_legend(title.position = "top")
+        )
+
+base_plot
+
+# using patchwork to combine base_plot a top_wordCloud into a single visualisation
+(base_plot + top_wordCloud)  +
+  plot_layout(heights = c(1, .45))
+
+# save plot
+ggsave("2021-06-15_duBoisChallenge.png", dpi=320)
+```
+
+
+- using gradient colour
+- background greydark
+- color blending - Infinity Showcase
+- blend colors for overlapping areas
+- combining charts
+- Create a gap using the data representation with same colour as the background
+to create a visual space (Method 4: Hacking the Code / Nadieh Bremer lesson)
+- Refactor a donnut chart / histogram / bar chart with polar coord
+
+## EDA
+
+```{r}
+# # explore datetime range
+tweets %>%
+  summarize(min_date = min(datetime, na.rm = TRUE),
+            max_date = max(datetime, na.rm = TRUE))
+
+# different months
+tweets %>%
+  mutate(month = lubridate::month(datetime)) %>%
+  distinct(month)
+
+
+# Explore location variable
+# ------------------------------------------------------------------------------
+tweets %>%
+  group_by(location) %>%
+  count(sort = TRUE) %>%
+  ungroup %>%
+  mutate(location = fct_reorder(location, n, sum),
+         location = fct_lump(location, 10, w = n)) %>%
+  ggplot() +
+  geom_col(aes(location, n, fill = location)) +
+  coord_flip()
+
+
+# Top tweet's words
+# ------------------------------------------------------------------------------
+# Common words from tweets...
+tweets %>%
+  select(content) %>%
+  unnest_tokens(word, content) %>%
+  anti_join(stop_words, by = "word") %>%
+  group_by(word) %>%
+  count(sort = TRUE) %>%
+  ungroup() %>%
+  slice(1:30) %>%
+  mutate(word = fct_reorder(word, n, sum)) %>%
+  ggplot +
+  geom_col(aes(word, n, fill = word)) +
+  coord_flip() +
+  theme(legend.position = "none")
+
+
+# Same process but using month + word as a group
+tweets %>%
+  mutate(month = lubridate::month(datetime)) %>%
+  select(month, content) %>%
+  unnest_tokens(word, content) %>%
+  anti_join(stop_words, by = "word") %>%
+  group_by(month, word) %>%
+  count(sort = TRUE) %>%
+  ungroup() %>%
+  slice(1:50) %>%
+  mutate(word = fct_reorder(word, n, sum)) %>%
+  ggplot +
+  geom_col(aes(word, n, fill = as.factor(month))) +
+  coord_flip() +
+  labs(fill = "Tweet's month",
+       title = "Top tweet's words by month",
+       subtitle = "During Juneteenth 2021 celebration")
+
+
+
+# using bars to represent the number of tweets per day
+tweets_per_day %>%
+  ggplot(aes(date, n, width = .5)) +
+  geom_col(fill = "steelblue") +
+  coord_polar()
+
+# use log10 scale
+tweets_per_day %>%
+  ggplot(aes(date, n, width = .5)) +
+  geom_col(fill = "steelblue") +
+  scale_y_log10() +
+  coord_polar()
+```
+  
+```{r} 
+# 2. Other geom as alternatives
+# ------------------------------------------------------------------------------
+# polar-tweet activty using geom_area                   
+tweets_per_day %>% 
+  filter(date < "2021-05-01") %>% 
+  ggplot(aes(date)) +
+  geom_area(aes(y=n), fill="#c51f5d",
+            colour = "white",
+            alpha = .50,
+            size = .2) +
+  scale_y_log10() +
+  coord_polar() +
+  labs(x = NULL,
+       title="Tweet activity during Juneteenth 2021") +
+  theme(
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(size = 0.1, 
+                                        arrow = arrow(length = unit(.1, "inches"))),
+        plot.margin = margin(25, 15, 15, 25),
+        plot.background = element_rect(color = "#FFFCFC", fill = "#141d26"),
+        plot.title = element_text(colour = "white", size = 16),
+        
+        axis.text = element_text(colour = "white", size=12),
+        axis.text.y = element_blank(),
+        
+        legend.title = element_text(colour = "white"),
+        legend.text = element_text(colour = "white")
+        )
+
+
+# polar-tweet activty using geom_col
+tweets_per_day %>% 
+  filter(date < "2021-05-01") %>% 
+   ggplot(aes(date, n, width = .5)) +
+  geom_col(aes(fill = n),
+           alpha = .8,
+           colour = "#243447",
+           size = .4) +
+  scale_fill_gradient2(high = "#c51f5d") +
+  scale_y_log10() +
+  coord_polar() +
+  labs(x = NULL,
+       title="Tweet activity during Juneteenth 2021") +
+  theme(
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(size = 0.1, 
+                                        arrow = arrow(length = unit(.1, "inches"))),
+        plot.margin = margin(25, 15, 15, 25),
+        plot.background = element_rect(color = "#FFFCFC", fill = "#141d26"),
+        plot.title = element_text(colour = "white", size = 16),
+        axis.text = element_text(colour = "white", size=12),
+        legend.title = element_text(colour = "white"),
+        legend.text = element_text(colour = "white")
+        )
+```
+
+
+
+
+
+
