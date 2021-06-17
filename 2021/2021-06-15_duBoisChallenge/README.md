@@ -28,7 +28,9 @@ legend title above w.r.t. the mapping, for example.
 
 Questions:
 
-1. 
+1. How to make annotations when you are using `coord_polar`?
+1. How to move the wordcloud into the first plot more than combine using `patchwork` 📦?
+1. How to use a colour gradient as a colour itself?
 
 ![./2021/2021-06-15_duBoisChallenge/2021-06-15_duBoisChallenge.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-15_duBoisChallenge/2021-06-15_duBoisChallenge.png)
 
