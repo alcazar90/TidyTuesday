@@ -45,8 +45,19 @@
                size = 3,
                family = "Oxygen",
                data = pick((city %in% top_near_cities)
-                           & (year == 2020))) +
+                           & (year == 2020))) 
    ```
+
+5. [Control pathwork `plot.background`](https://community.rstudio.com/t/patchwork-plot-background-control/78022);
+
+   ```R
+   g1 + g2 + g3 +
+     plot_layout(nrow = 1, widths = c(1, 2, 1)) &
+     theme(plot.margin = unit(c(.2,.2,.2,.2), "cm")) &
+     plot_annotation(theme = theme(plot.background = element_rect(color  = 'blue', size = 2,linetype = 'dotted', fill ="ivory"))
+   ```
+
+   
 
    ![./2021/2021-06-22_public_park/2021-06-22_publicPark.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-22_public_park/2021-06-22_publicPark.png)
 

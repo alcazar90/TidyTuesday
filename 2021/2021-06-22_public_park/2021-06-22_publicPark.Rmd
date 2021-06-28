@@ -175,7 +175,8 @@ spent_plot <- parks %>%
   theme(legend.position = "none",
         panel.grid = element_blank(),
         panel.background = element_rect(fill = "#F2EADE", colour = "#F2EADE"),
-        plot.background = element_rect(fill = "#F2EADE", colour = "#F2EADE"),
+        plot.background = element_rect(fill = "transparent", colour = NA),
+        # plot.background = element_rect(fill = "#F2EADE", colour = "#F2EADE"),
         plot.title = element_text(size = 16, colour = "#12130F", family = "Oxygen",
                                   vjust = 0.1)
         ) 
