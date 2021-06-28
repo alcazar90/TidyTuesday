@@ -1,0 +1,190 @@
+---
+title: "TidyTuesday 2021-06-22 - Public Park Access"
+author: "Cristóbal Alcázar"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+
+```{r toy-tools, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggtext)
+library(ggimage)
+library(patchwork)
+
+theme_set(theme_minimal(base_family = "Oxygen",
+                        base_size = 12))
+```
+
+```{r download-data}
+parks <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-06-22/parks.csv')
+```
+
+
+```{r}
+# Create text column with emojis
+# ------------------------------------------------------------------------------
+park_emojis <- c("1f332", "1f333", "1f343", "1f415", "200D", "1F408", "1F99D")
+N_emojis = 60
+set.seed(482216)
+tbl_emojis <- tibble(
+        x = runif(N_emojis, min = -1.3, max = 1.3),
+        y = sample(c(runif(as.integer(N_emojis / 2), min = 3.5, max= 5), 
+            runif(as.integer(N_emojis / 2), min = 0, max = 1.6)), N_emojis),
+        emoji = sample(park_emojis, N_emojis, replace = TRUE)
+)
+
+TEXT <- "The green cities are the top 10 in a positive percentage variation of residents within a 10 minutes walk to a park; by more than 50% between 2012-2020. On the contrary, red cities are the 5 cities with lower and even a decrease percentage variation in public access during these 8 years."
+
+text_plot <- ggplot() +
+  geom_emoji(data = tbl_emojis,
+             aes(x = x, y = y, image = emoji), size = .028) +
+  geom_text(aes(x = 0, 
+                y = 2.5, 
+                label = str_wrap(TEXT, 30),
+                family = "Oxygen",
+                vjust = 0.45)
+  ) +
+  labs(title = "Park Access\nin the U.S.",
+       caption = "Source: The Trust for Public Land, Citylab\nGraphic: @vamos_alcazar") +
+  coord_fixed(clip="off", xlim=c(-1.5, 1.5), ylim=c(0, 5)) +
+  theme_void(base_family = "Oxygen") +
+  theme(plot.background = element_rect(fill = "#F2EADE",
+                                       color = NA),
+        plot.title = element_text(size = 20, hjust = 0.5, color = "#12130F"),
+        plot.caption = element_text(hjust = 0.5, vjust = 1, color = "#12130F"))
+  
+  
+```
+
+
+
+```{r}
+# 2. Median spent per capita across time by city
+# ------------------------------------------------------------------------------
+
+# Filter all countries with data in 2012 and 2020, then compute the % difference
+# between 2020 - 2012
+var_near <- parks %>% 
+  filter(year %in% c(2012, 2020)) %>% 
+  select(year, city, pct_near_park_points) %>% 
+  tidyr::pivot_wider(id_cols = "city", names_from = year, values_from = pct_near_park_points,
+                     names_prefix = "pct_near") %>% 
+  filter(complete.cases(.)) %>% 
+  mutate(var_pct = pct_near2020 - pct_near2012) %>% 
+  arrange(desc(var_pct)) %>% 
+  mutate(city = fct_reorder(city, var_pct)) %>% 
+  mutate(var_cat = case_when(between(var_pct, 40, max(var_pct)) ~ "40-62",
+                             between(var_pct, 20, 39) ~ "20-39",
+                             TRUE ~ "<20")) 
+  
+
+# Cities with major increasing between 2020-2012 in near park %
+top_near_cities <- var_near %>% 
+  arrange(desc(var_pct)) %>% 
+  filter(var_cat == "40-62") %>% 
+  select(city) %>% 
+  slice(1:10) %>% 
+  pull() %>% 
+  as.character()
+
+
+worst5_near_cities <- var_near %>% 
+  arrange(desc(var_pct)) %>% 
+  arrange(var_pct) %>% 
+  select(city) %>% 
+  slice(1:5) %>% 
+  pull() %>% 
+  as.character()
+
+
+# Percentage variation between 2012 and 2020
+var_1220 <- var_near %>% 
+  mutate(top_cities = as_factor(
+                       case_when(city %in% top_near_cities ~ "Top 5",
+                                 city %in% worst5_near_cities ~ "Worst 5",
+                                 TRUE ~ "No")),
+         var_pct = var_pct / 100) %>%  
+  ggplot() +
+  geom_point(aes(city, var_pct, fill = top_cities), shape = 21, colour = "black",
+             size =3) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_manual(values=c("No" = "#D1D4D0", "Worst 5" = "firebrick", "Top 5" = "darkgreen")) +
+  coord_flip() +
+  labs(x = NULL,
+       y = NULL) +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "#F2EADE", colour = "#F2EADE"),
+        plot.background = element_rect(fill = "#F2EADE", colour = "#F2EADE"))
+  
+  
+# Compute total average spent per resident 
+TOTAL_AVG_SPENT <- parks %>% 
+  select(year, spend_per_resident_data) %>% 
+  mutate(spr = as.double(str_replace(spend_per_resident_data, "\\$", ""))) %>% 
+  group_by(year) %>% 
+  summarise(p50 = median(spr)) %>% 
+  select(year, p50) %>% 
+  ungroup()
+
+
+# Compute the median spend per resident by city across years. Highlight the top
+# near and far cities 
+pick <- function(condition){   function(d) d %>% filter(!!enquo(condition)) }
+
+spent_plot <- parks %>% 
+  select(year, city, spend_per_resident_data) %>% 
+  mutate(spr = as.double(str_replace(spend_per_resident_data, "\\$", "")),
+         city = str_replace_all(city, "\\.", "")) %>% 
+  mutate(top_cities = as_factor(
+                       case_when(city %in% top_near_cities ~ "Top 5",
+                                 city %in% worst5_near_cities ~ "Worst 5",
+                                 TRUE ~ "No"))) %>% 
+  ggplot(aes(year, spr)) +
+  scale_y_continuous(labels = scales::dollar_format()) + 
+  geom_line(aes(colour = top_cities, year=city)) +
+  geom_line(aes(year, p50),
+            data = TOTAL_AVG_SPENT, colour = "#12130F",
+            lty = 2,
+            size = 1.2) +
+  geom_curve(
+    aes(x = 2014, y = 135, xend = 2015, yend = 85),
+    curvature = .4,
+    arrow = arrow(length = unit(0.03, "npc"))
+  ) +
+  geom_text(aes(x = 2014, y = 140, label = "Total Median"),
+            size = 3.2, family = "Oxygen")  +
+  geom_text(aes(2019.6, spr + 5, label=city),
+            size = 3,
+            family = "Oxygen",
+            data = pick((city %in% top_near_cities)
+                        & (year == 2020))) +
+  geom_point(aes(2020, spr),
+             data = pick((year == 2020) & (city %in% top_near_cities))) +
+  scale_colour_manual(values=c("No" = "#D1D4D0", "Worst 5" = "firebrick", "Top 5" = "darkgreen")) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Spending per resident by city"
+  ) + 
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        panel.background = element_rect(fill = "#F2EADE", colour = "#F2EADE"),
+        plot.background = element_rect(fill = "#F2EADE", colour = "#F2EADE"),
+        plot.title = element_text(size = 16, colour = "#12130F", family = "Oxygen",
+                                  vjust = 0.1)
+        ) 
+
+spent_plot +
+  text_plot
+
+
+# save plot
+ggsave("2021-06-22_publicPark.png", dpi=320)
+```
+
+
