@@ -30,7 +30,7 @@ Follow @vamos_alcazar</a>
 
 ***
 
-### [2021/25](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-22_public_park) Public Park Access in the U.S. by [The Trust for Public Land, Citylab](https://www.tpl.org/parks-and-an-equitable-recovery-parkscore-report)
+### [2021/26](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-22_public_park) Public Park Access in the U.S. by [The Trust for Public Land, Citylab](https://www.tpl.org/parks-and-an-equitable-recovery-parkscore-report)
 ![./2021/2021-06-22_public_park/2021-06-22_publicPark.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-22_public_park/2021-06-22_publicPark.png)
 
 ### [2021/25](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-15_duBoisChallenge) WEB DU Bois and Juneteenth by [`#DuBoisChallenge` tweets](https://public.tableau.com/app/profile/sekou.tyler/viz/DuBoisChalllenge2021TwitterMetrics/DuBoisChallenge2021TwitterActivity)
