@@ -159,6 +159,7 @@ spent_plot <- parks %>%
   geom_text(aes(x = 2014, y = 140, label = "Total Median"),
             size = 3.2, family = "Oxygen")  +
   geom_text(aes(2019.6, spr + 5, label=city),
+            check_overlap = TRUE,
             size = 3,
             family = "Oxygen",
             data = pick((city %in% top_near_cities)
