@@ -23,11 +23,15 @@ Follow @vamos_alcazar</a>
   - 2021/23 [🎥 Survivor TV Show👊](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-01_survivor)
   - 2021/24 [🐠 Great Lakes Fish🐠](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes)
   - 2021/25 [💭 #DuBoisChallenge tweets🗽](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-15_duBoisChallenge)
+  - 2021/26 [🌲🦮 Public Park Access in 🇺🇸](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-22_public_park)
 <!-- tocstop -->
 
 </details>
 
 ***
+
+### [2021/25](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-22_public_park) Public Park Access in the U.S. by [The Trust for Public Land, Citylab](https://www.tpl.org/parks-and-an-equitable-recovery-parkscore-report)
+![./2021/2021-06-22_public_park/2021-06-22_publicPark.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-22_public_park/2021-06-22_publicPark.png)
 
 ### [2021/25](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-15_duBoisChallenge) WEB DU Bois and Juneteenth by [`#DuBoisChallenge` tweets](https://public.tableau.com/app/profile/sekou.tyler/viz/DuBoisChalllenge2021TwitterMetrics/DuBoisChallenge2021TwitterActivity)
 ![./2021/2021-06-15_duBoisChallenge/2021-06-15_duBoisChallenge.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-15_duBoisChallenge/2021-06-15_duBoisChallenge.png)
