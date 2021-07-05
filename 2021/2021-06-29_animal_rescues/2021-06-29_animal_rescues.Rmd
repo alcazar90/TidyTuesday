@@ -73,8 +73,8 @@ map <- postcodes %>%
            colour = "#395F60",
            data = filter(animal_rescues,
                          special_service_type_category == "Animal rescue from water")) +
-  labs(title = "Animal rescue from water\nby the London Fire Brigade",
-       caption = "Every case registered from \n2009/01 to 2021/05") +
+  labs(title = "Animal rescues from water\nby the London Fire Brigade",
+       caption = "Every case registered from \n2009/01 to 2021/05\nin London") +
   
   theme(panel.grid = element_blank(),
         axis.title = element_blank(),
@@ -104,7 +104,7 @@ line <- animal_rescues %>%
   geom_line(aes(date_month, num_rescues),
             colour = "#c51f5d") +
   labs(x = NULL, y = NULL,
-       title = "# of Cases Across Time", 
+       title = "Number\n of Cases Across Time", 
        caption = "\nSource: London.gov\nGraphic: @vamos_alcazar") +
   theme(
         plot.background = element_rect(fill = "#203738", colour = NA),
@@ -136,14 +136,15 @@ vertical_bars <- animal_rescues %>%
             colour = "white") +
   labs(x = NULL,
        y = NULL,
-       title = "# of Animals Rescue from Water") +
+       title = "Number of Rescues\nper Animal Type") +
   coord_flip(clip="off") +
   theme(plot.background = element_rect(fill = "#203738", colour = NA),
         plot.margin = margin(50 ,25, 25, 10),
         axis.text = element_text(colour = "white"),
-        plot.title = element_text(colour = "white", size=16),
+        plot.title = element_text(colour = "white", size=16, hjust=.4),
         panel.grid = element_blank())
 
+vertical_bars
 
 # patchwork: combine the map and the line vertically
 viz <- map + line +  plot_layout(nrow=2, 
