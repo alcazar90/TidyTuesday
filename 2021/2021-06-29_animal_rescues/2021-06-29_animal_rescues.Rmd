@@ -1,0 +1,326 @@
+---
+title: "TidyTuesday 2021-06-29 - Animal Rescues"
+author: "Cristóbal Alcázar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+
+```{r toy-tools, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(RColorBrewer)
+library(patchwork)
+
+theme_set(theme_minimal(base_family = "Roboto Condensed",
+                        base_size = 14))
+```
+
+
+```{r download-data}
+animal_rescues <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-06-29/animal_rescues.csv')
+
+# [cleaning] two cat labels Cat/  cat; change label cat to Cat:
+animal_rescues <- animal_rescues %>% 
+                    mutate(month = lubridate::month(date_time_of_call, label=TRUE),
+                          animal_group_parent = case_when(animal_group_parent == "cat" ~ "Cat",
+                                                                     TRUE ~ animal_group_parent),
+                          latitude = as.double(latitude),
+                          longitude = as.double(longitude),
+                          easting_m = as.double(easting_m),
+                          northing_m = as.double(northing_m)) 
+
+
+# https://datatricks.co.uk/london-map-in-3-easy-steps
+# Download zip codes for plot london by points...
+root <- "./codepo_gb/DATA/CSV/"
+# filenames <- c("e.csv", "n.csv", "nw.csv", "se.csv", "sw.csv", "w.csv", "wc.csv", "ec.csv")
+# postcodes <- purrr::map_df(paste0(root, filenames), read_csv, col_names=FALSE)
+postcodes <- purrr::map_df(list.files(root, full.names=TRUE), read_csv, col_names=FALSE)
+postcodes <- filter(postcodes, X3 != 0)
+
+# identify the MIN, MAX for northing_m and easting_m to point relevant points from postcodes data
+offset <- 10
+animal_rescues %>% 
+  summarize(min_nor = min(northing_m, na.rm=TRUE) - offset,
+            min_eas = min(easting_m, na.rm=TRUE) - offset,
+            max_nor = max(northing_m, na.rm=TRUE) + offset,
+            max_eas = max(easting_m, na.rm=TRUE) + offset) 
+
+
+borough_labels <- animal_rescues %>% 
+  filter(special_service_type_category == "Animal rescue from water") %>% 
+  mutate(borough = tolower(borough)) %>% 
+  group_by(borough) %>% 
+  summarize(easting_m = mean(easting_m, na.rm=TRUE),
+            northing_m = mean(northing_m, na.rm=TRUE))
+
+# Plot map with points
+map <- postcodes %>% 
+  filter(between(X3, 500015, 571404),
+         between(X4, 157040, 200738)) %>% 
+  ggplot() + 
+  geom_point(aes(x=X3, y=X4), size=.2, 
+             # color = "#DE6B07",
+             color = "#c51f5d",
+             alpha = .2) +
+  geom_point(aes(easting_m, northing_m), 
+           size = 2.0,
+           shape = 21,
+           fill = "white",
+           colour = "#395F60",
+           data = filter(animal_rescues,
+                         special_service_type_category == "Animal rescue from water")) +
+  labs(title = "Animal rescue from water\nby the London Fire Brigade",
+       caption = "Every case registered from \n2009/01 to 2021/05") +
+  
+  theme(panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "bottom",
+        plot.margin = margin(c(30, 50, 55, 30)),
+        panel.background = element_rect(fill = "#203738", colour = "white"),
+        plot.title = element_text(colour = "white",
+                                  size = 24,
+                                  hjust = .5),
+        plot.caption = element_text(colour = "white",
+                                    hjust = .5),
+        plot.background = element_rect(fill = "#203738", colour = NA))
+
+
+# Number of cases...
+line <- animal_rescues %>% 
+ filter(
+        special_service_type_category == "Animal rescue from water"
+  ) %>% 
+  mutate(datetime = lubridate::dmy_hm(date_time_of_call),
+          date = lubridate::as_date(datetime),
+          date_month = lubridate::round_date(date, "month")) %>% 
+  group_by(date_month) %>% 
+  summarize(num_rescues = n()) %>% 
+  ggplot() +
+  geom_line(aes(date_month, num_rescues),
+            colour = "#c51f5d") +
+  labs(x = NULL, y = NULL,
+       title = "# of Cases Across Time", 
+       caption = "\nSource: London.gov\nGraphic: @vamos_alcazar") +
+  theme(
+        plot.background = element_rect(fill = "#203738", colour = NA),
+        plot.title = element_text(hjust = .51, colour = "white", size=16),
+        plot.margin = margin(c(30, 50, 55, 30)),
+        panel.grid = element_blank(),
+        axis.text.y = element_text(colour = "white", size = 9),
+        axis.text.x = element_text(colour = "white", size = 12),
+        plot.caption = element_text(colour = "white",
+                                    hjust = .5)
+        )
+
+
+vertical_bars <- animal_rescues %>% 
+  filter(special_service_type_category == "Animal rescue from water") %>% 
+  count(animal_group_parent) %>% 
+  mutate(
+         prop = n / sum(n),
+         animal = case_when(animal_group_parent == "Unknown - Domestic Animal Or Pet" ~ "Unknown\n Domestic Animal",
+                            animal_group_parent == "Unknown - Wild Animal" ~ "Unknown\n Wild Animal",
+                            animal_group_parent == "Unknown - Animal rescue from water - Farm animal" ~ "Unknown\n Farm Animal",
+                            TRUE ~ as.character(animal_group_parent)),
+         animal= fct_reorder(animal, n)) %>% 
+  ggplot() +
+  geom_col(aes(animal, n),
+           fill = "#c51f5d",
+           colour = "white") +
+  geom_text(aes(animal, n + 15, label = scales::percent(prop, accuracy = 0.1)),
+            colour = "white") +
+  labs(x = NULL,
+       y = NULL,
+       title = "# of Animals Rescue from Water") +
+  coord_flip() +
+  theme(plot.background = element_rect(fill = "#203738", colour = NA),
+        plot.margin = margin(50 ,25, 25, 10),
+        axis.text = element_text(colour = "white"),
+        plot.title = element_text(colour = "white", size=16),
+        panel.grid = element_blank())
+
+
+# patchwork: combine the map and the line vertically
+viz <- map + line +  plot_layout(nrow=2, 
+                                 ncol=1,
+                                 height=c(2.5, .5))
+viz | vertical_bars 
+
+# save plot
+ggsave("2021-06-29_animal_rescues.png", dpi=320, width = 10, height = 9.5)
+```
+
+```{r}
+# Number of years
+animal_rescues %>% 
+  distinct(cal_year)
+
+
+animal_rescues %>% 
+  distinct(type_of_incident)
+
+
+# property_category and property_type are macro and micro categories
+animal_rescues %>% 
+  count(property_type, sort=TRUE) %>% 
+  left_join(distinct(animal_rescues,
+                     property_type, 
+                     property_category), by = "property_type") %>% 
+  mutate(property_type = fct_reorder(property_type, n)) %>% 
+  slice(1:10) %>% 
+  ggplot() +
+  geom_col(aes(property_type, n, fill=property_category)) +
+  coord_flip() +
+  theme(legend.position = "bottom") +
+  labs(
+    title = "What are the 10 property types with animal rescues?",
+    fill = "Property\nCategory",
+    x = NULL,
+    y = NULL
+  )
+
+
+View(animal_rescues)
+
+# inspecting animal_group_parent
+animal_rescues %>% 
+  count(animal_group_parent, sort = TRUE)
+
+animal_rescues %>% 
+  count(animal_group_parent, sort = TRUE)
+
+# very sparse pair labels counting... (animal_group_parent, property_category)
+xtabs(~ animal_group_parent + as.factor(property_category), data = animal_rescues) %>% 
+  as_tibble() %>% 
+  rename(property_category = `as.factor(property_category)`) %>% 
+  ggplot() +
+  geom_tile(aes(property_category, animal_group_parent, fill = n))
+
+
+xtabs(~ animal_group_parent + as.factor(borough), data = animal_rescues) %>% 
+  as_tibble() %>% 
+  rename(property_category = `as.factor(borough)`) %>% 
+  ggplot() +
+  geom_tile(aes(property_category, animal_group_parent, fill = n))
+
+
+# cerea
+animal_rescues %>% 
+  ggplot(aes()) 
+
+
+# (ANIMAL_ TYPE_i - YEAR_i) = # of cases
+xtabs(~ cal_year + as.factor(animal_group_parent), data = animal_rescues) %>% 
+  as_tibble() %>% 
+  rename(animal = `as.factor(animal_group_parent)`) %>% 
+  mutate(
+         animal = fct_lump(animal, n=12, w = n),
+         animal = fct_reorder(animal, n)) %>% 
+  ggplot() + 
+  geom_tile(aes(cal_year, animal, fill=n),
+            colour = "white") +
+  geom_curve(aes(x="2019", xend="2015", y=as.factor("cat"), yend=as.factor("Unknown - Domestic Animal Or Pet"))) +
+  scale_fill_gradientn(colors = brewer.pal(9, "YlGn"), trans = "sqrt") +
+  theme(legend.position = "top") +
+  guides(
+    fill = guide_colorbar(title.position = "top",
+                          title.hjust = .5)
+  ) +
+  labs(fill = "# of cases",
+       x = NULL,
+       y = NULL)
+
+
+
+
+
+
+
+# 1. monthly number of cases across years
+animal_rescues %>% 
+  group_by(cal_year, month) %>% 
+  count() %>% 
+  ggplot() + 
+  geom_tile(aes(cal_year, month, fill=n),
+            colour = "white") +
+  # scale_fill_gradientn(colors = brewer.pal(9, "YlGn")) +
+  scale_fill_gradientn(colors = brewer.pal(9, "Reds")) +
+  geom_hline(aes(yintercept = "Apr"), lty=2, colour = "black") +
+  geom_hline(aes(yintercept = "Sep"), lty=2, colour = "black") +
+  geom_curve(aes(x=2016, xend=2010, y="Mar", yend="Jan"),
+             size = .2,
+             curvature = .3,
+             angle = -45,
+             arrow = arrow(length = unit(.03, "npc"))) +
+  geom_text(aes(x=2016.4, y="Mar", label="???"),
+            size=5) +
+  guides(
+    fill = guide_colorbar(title.position = "top",
+                          title.hjust = .5)
+  ) +
+  labs(x = NULL, y = NULL, fill = "# of cases") +
+  theme(legend.position = "bottom",
+        plot.title = element_text(hjust=.5),
+        panel.grid = element_blank())
+
+
+
+# Density distribution across all time
+animal_rescues %>% 
+  ggplot() +
+  geom_histogram(aes(special_service_type_category))
+
+
+animal_rescues %>% 
+  ggplot() +
+  geom_histogram(aes(hourly_notional_cost))
+
+
+animal_rescues %>% 
+  select(postcode_district,
+         longitude,
+         latitude,
+         stn_ground_name) %>% 
+  mutate(longitude = as.double(longitude),
+         latitude = as.double(latitude)) %>% 
+  filter(complete.cases(.), latitude > 0) %>% 
+  ggplot() +
+  geom_point(aes(longitude, latitude, colour = stn_ground_name)) +
+  theme(legend.position = "none")
+
+
+animal_rescues %>% 
+  distinct(stn_ground_name)
+
+
+# approaches for the same thing...
+xt <- xtabs(~as.factor(animal_group_parent) + special_service_type_category, data = animal_rescues) 
+summary(xt)
+xt <- as.matrix(xt)
+round(xt / rowSums(xt), 4)
+
+animal_rescues %>% 
+  group_by(animal_group_parent, special_service_type_category) %>% 
+  count() %>% 
+  group_by(animal_group_parent) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ungroup() %>% 
+  mutate(special_service_type_category = case_when(!str_detect(special_service_type_category, "Other")
+                                                       ~ str_extract(special_service_type_category, "from.+"),
+                                                   TRUE ~ "Other"),
+         special_service_type_category = str_replace(special_service_type_category, "from ", ""),
+         animal_group_parent = fct_reorder(animal_group_parent, n, max)) %>% 
+  ggplot() +
+  geom_point(aes(animal_group_parent, special_service_type_category, size = prop),
+             fill = "white", colour = "firebrick", shape=21) +
+  coord_flip() +
+  theme(panel.grid.major = element_line(size = .8, colour = "firebrick")) +
+  labs(x = NULL,
+       y = NULL)
+```
+
