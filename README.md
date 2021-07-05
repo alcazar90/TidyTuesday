@@ -17,20 +17,26 @@ Follow @vamos_alcazar</a>
 
 <details>
   <summary>Click to expand my #TidyTuesday submissions</summary>
-  
+
 <!-- toc -->
 * **Challenges 2021**
   - 2021/23 [🎥 Survivor TV Show👊](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-01_survivor)
   - 2021/24 [🐠 Great Lakes Fish🐠](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes)
   - 2021/25 [💭 #DuBoisChallenge tweets🗽](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-15_duBoisChallenge)
   - 2021/26 [🌲🦮 Public Park Access in 🇺🇸](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-22_public_park)
-<!-- tocstop -->
+  - 2021/29 [⛑️ Animal Rescues 🐈](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-29_animal_rescues)
+  - <!-- tocstop -->
 
 </details>
 
 ***
 
+### [2021/29](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-29_animal_rescues) ⛑️ 🐈 Animal Rescues by [London.gov](https://data.london.gov.uk/dataset/animal-rescue-incidents-attended-by-lfb)
+
+![./2021/2021-06-29_animal_rescues/2021-06-29_animal_rescues.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-29_animal_rescues/2021-06-29_animal_rescues.png)
+
 ### [2021/26](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-22_public_park) Public Park Access in the U.S. by [The Trust for Public Land, Citylab](https://www.tpl.org/parks-and-an-equitable-recovery-parkscore-report)
+
 ![./2021/2021-06-22_public_park/2021-06-22_publicPark.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-22_public_park/2021-06-22_publicPark.png)
 
 ### [2021/25](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-15_duBoisChallenge) WEB DU Bois and Juneteenth by [`#DuBoisChallenge` tweets](https://public.tableau.com/app/profile/sekou.tyler/viz/DuBoisChalllenge2021TwitterMetrics/DuBoisChallenge2021TwitterActivity)
