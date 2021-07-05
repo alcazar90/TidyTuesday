@@ -137,7 +137,7 @@ vertical_bars <- animal_rescues %>%
   labs(x = NULL,
        y = NULL,
        title = "# of Animals Rescue from Water") +
-  coord_flip() +
+  coord_flip(clip="off") +
   theme(plot.background = element_rect(fill = "#203738", colour = NA),
         plot.margin = margin(50 ,25, 25, 10),
         axis.text = element_text(colour = "white"),
@@ -150,6 +150,7 @@ viz <- map + line +  plot_layout(nrow=2,
                                  ncol=1,
                                  height=c(2.5, .5))
 viz | vertical_bars 
+
 
 # save plot
 ggsave("2021-06-29_animal_rescues.png", dpi=320, width = 10, height = 9.5)
