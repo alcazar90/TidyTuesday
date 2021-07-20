@@ -1,0 +1,189 @@
+---
+title: "TidyTuesday 2021-06-29 - Animal Rescues"
+author: "Cristóbal Alcázar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+
+```{r toy-tools, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggtext)
+
+theme_set(theme_minimal(base_family = "Roboto Condensed",
+                        base_size = 14))
+```
+
+
+```{r download-data}
+drought <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-07-20/drought.csv')
+
+
+# labels for the column 'drought_lvl'
+drought_lvl <- tibble(
+  drought_lvl = c("None", "D0", "D1", "D2", "D3", "D4"),
+  label = c("None", "Abnormally Dry", "Moderate", "Severe", 
+            "Extreme", "Exceptional")
+)
+
+# create a table with the divisioin of the USA by census regions
+WEST <- c("WA", "OR", "CA", "MT", "ID", "WY", "NV", "UT", "CO", "AZ", "NM")
+MIDWEST <- c("ND", "SD", "NE", "KS", "MN", "IA", "MO", "WI", "IL", "MI", "IN", "OH")
+SOUTH <- c("OK", "TX", "AR", "LA", "KY", "TN", "MS", "AL", "WV", "VA", "MD", "DE",
+           "NC", "SC", "GA", "FL", "DC")
+NORTHEAST <- c("PA", "NY", "NJ", "VT", "NH", "ME", "MA", "CT", "RI")
+NONMAINLAND <- c("AK", "HI", "PR")
+
+states_by_region <- tibble(
+  "state_abb" = c(WEST, MIDWEST, SOUTH, NORTHEAST, NONMAINLAND),
+  "region" = c(rep("West", length(WEST)), rep("Midwest", length(MIDWEST)),
+               rep("South", length(SOUTH)), rep("Northeast", length(NORTHEAST)),
+               rep("None Mainland", length(NONMAINLAND)))
+)
+
+
+# add label/description variaibles
+drought <- drought %>% 
+  left_join(states_by_region, by = "state_abb") %>% 
+  left_join(drought_lvl, by = "drought_lvl")
+
+
+# detect cumulative area_pct state by counting up from the D4 level
+drought %>% 
+  group_by(state_abb, valid_start) %>% 
+  summarise(check = sum(area_pct)) %>% 
+  arrange(desc(check)) %>% 
+  filter(check > 100)
+
+# apply to a group by state_abb, valid_start
+drought %>% 
+  filter(state_abb == "WI", valid_start == "2013-02-05") %>% 
+  arrange(desc(drought_lvl)) %>% 
+  select(state_abb, valid_start, drought_lvl, area_pct) %>% 
+  mutate(fix_area_pct = case_when(drought_lvl == "D4" ~ area_pct,
+                                  drought_lvl != "None" ~ 
+                                             area_pct - lag(area_pct),
+                                  TRUE ~ area_pct))
+
+
+# fix_area_pct desaccumulate previous level from D4-D0 ignoring None
+drought <- drought %>% 
+  group_by(state_abb, valid_start) %>% 
+  arrange(desc(drought_lvl)) %>% 
+  mutate(fix_area_pct = case_when(drought_lvl == "D4" ~ area_pct,
+                                  drought_lvl != "None" ~ 
+                                             area_pct - lag(area_pct),
+                                  TRUE ~ area_pct)) %>% 
+  ungroup()
+  
+
+# check that apply correctly...
+drought %>% 
+  filter(state_abb == "WI", valid_start == "2013-02-05") %>% 
+  arrange(desc(drought_lvl))
+```
+
+```{r}
+# Replicate the plot "How dry I am" by The Economist:
+# https://view.e.economist.com/?qs=e2eb491699083554e6e0165e2847c6ebb1f8701f81f48a77a213f54bb25691d58948226f18f5041b191897ec7e98e6462192c63afffc8fcb27220927072403ebf4a1d8b65776755bcddddcf91218183a
+COLORS = c("#f0d19d", "#eda098", "#e57d76", "#dc5053", "#a32325")
+
+# tibble for x-axis text using with annotations()
+x_axis = tibble(
+  x = c(
+        lubridate::ym("2002/07"),
+        lubridate::ym("2006/07"),
+        lubridate::ym("2010/07"),
+        lubridate::ym("2014/07"),
+        lubridate::ym("2018/07"),
+        lubridate::ym("2021/01")),
+  y = -7,
+  label = c("2002", "06", "10", "14", "18", "21")
+)
+
+# tibble for xticks using with geom_linerange()
+x_ticks = tibble(
+            x = c(seq.Date(lubridate::ym("2002/01"), 
+                           lubridate::ym("2021/01"), 
+                                     by = "1 year"),
+                            max(drought$valid_start)),
+            ymax = 0,
+            ymin = c(rep(c(4, 4, 2.3, 2.3), 4),  4, 4, 2.3, 4, 2.3) * -1)
+
+
+drought %>% 
+  filter(region == "West",
+         label != "None",
+         lubridate::year(valid_start) > 2001) %>% 
+  mutate(date = lubridate::ym(
+                            paste(lubridate::year(valid_start),
+                                  lubridate::month(valid_start),
+                                                   sep = "/")),
+         label = fct_reorder(label, area_pct, mean, .desc=TRUE)) %>% 
+  group_by(valid_start, label) %>% 
+  summarise(avg_area_pct = mean(fix_area_pct)) %>% 
+  ggplot +
+  geom_area(aes(valid_start, avg_area_pct, fill=label)) +
+  scale_fill_manual(values=COLORS) +
+  # expand = c(0, 0) remove space between x-axis and panel
+  scale_y_continuous(limits = c(-10, 100), expand = c(0, 0),
+                     position = "right") +
+  labs(
+    title = "<b>How dry I am</b><br>
+    <span style = 'font-size:14pt'>US, proportion of western states in drought</span><br>
+    <span style = 'font-size:12pt'>By intensity category, % of total area</span>",
+    x = NULL,
+    y = NULL,
+    caption = "        Source: US Drought Monitor",
+    fill = NULL
+  ) + 
+  geom_curve(aes(x = lubridate::ym("2015/01"), y = 85,
+                 xend = lubridate::ym("2020/11"), yend = 20),
+             curvature = 0.20,
+             arrow = arrow(length = unit(0.03, "npc"))) +
+  geom_text(aes(x = lubridate::ym("2015/01"), y = 95,
+                label = "The effect of\nrecord-low precipitation and higher temperatures"),
+            fontface="italic", size = 3) +
+  coord_cartesian(clip = "off") +
+  annotate(geom = "text", x = x_axis$x, y = x_axis$y,
+           label = x_axis$label, size = 3.7) +
+  geom_linerange(data = x_ticks,
+                 aes(x = x, ymin = ymin, ymax = ymax)) +
+  geom_hline(aes(yintercept=0)) +
+  theme(
+    panel.border = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_line(colour = "#c8d4db"),
+    
+    plot.background = element_rect(fill = "#dfecf3",
+                                   colour = NULL),
+    
+    axis.text.y = element_text(vjust=0),
+    axis.text.x = element_blank(),
+    
+    legend.position = "top",
+    legend.justification = "left",
+    legend.key.width = unit(0.3, "cm"),
+    legend.key.height = unit(0.18, "cm"),
+    legend.spacing.x = unit(0.2, "cm"),
+    legend.margin = margin(5, .2, .2, .2),
+    
+    plot.title = element_textbox_simple(fill = NULL,
+                                        padding = margin(5.5, 5.5, 5.5, 5.5)),
+    plot.caption = element_text(hjust=0, colour = "#757b7e")
+  ) +
+  guides(fill = guide_legend(ncol = 4, byrow = TRUE, reverse = TRUE))
+
+
+# save plot
+ggsave("2021-07-20_us_droughts.png", dpi=320, width = 9, height = 7.2)
+```
+
+
+
+
+
