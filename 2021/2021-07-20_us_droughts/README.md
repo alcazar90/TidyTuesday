@@ -6,7 +6,7 @@
 
 This week I reproduce the below plot ["How dry I am"](https://view.e.economist.com/?qs=e2eb491699083554e6e0165e2847c6ebb1f8701f81f48a77a213f54bb25691d58948226f18f5041b191897ec7e98e6462192c63afffc8fcb27220927072403ebf4a1d8b65776755bcddddcf91218183a) by The Economist. 
 
-<img src="the_economist_viz.png" alt="the_economist_viz" style="zoom:30%;" />
+<img src="the_economist_viz.png" alt="the_economist_viz" style="zoom:10%;" />
 
 The primary lesson doing this plot was to rebuild the x-axis entirely (lesson 1-3).
 
