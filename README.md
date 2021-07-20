@@ -33,7 +33,7 @@ Follow @vamos_alcazar</a>
 
 ***
 
-### [2021/30](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-29_animal_rescues)  🏜️ US Droughts by [Drought Monitor](https://droughtmonitor.unl.edu/DmData/DataDownload.aspx)
+### [2021/30](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-07-20_us_droughts)  🏜️ US Droughts by [Drought Monitor](https://droughtmonitor.unl.edu/DmData/DataDownload.aspx)
 
 ![./2021/2021-07-20_us_droughts/2021-07-20_us_droughts.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-07-20_us_droughts/2021-07-20_us_droughts.png)
 
