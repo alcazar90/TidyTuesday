@@ -24,14 +24,20 @@ Follow @vamos_alcazar</a>
   - 2021/24 [🐠 Great Lakes Fish🐠](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-08_great_lakes)
   - 2021/25 [💭 #DuBoisChallenge tweets🗽](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-15_duBoisChallenge)
   - 2021/26 [🌲🦮 Public Park Access in 🇺🇸](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-22_public_park)
-  - 2021/29 [⛑️ Animal Rescues 🐈](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-29_animal_rescues)
-  - <!-- tocstop -->
+  - 2021/27 [⛑️ Animal Rescues 🐈](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-29_animal_rescues)
+  - 2021/30 [US Droughts 🏜️](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-07-20_us_droughts)
+
+<!-- tocstop -->
 
 </details>
 
 ***
 
-### [2021/29](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-29_animal_rescues) ⛑️ 🐈 Animal Rescues by [London.gov](https://data.london.gov.uk/dataset/animal-rescue-incidents-attended-by-lfb)
+### [2021/30](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-29_animal_rescues)  🏜️ US Droughts by [Drought Monitor](https://droughtmonitor.unl.edu/DmData/DataDownload.aspx)
+
+![./2021/2021-07-20_us_droughts/2021-07-20_us_droughts.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-07-20_us_droughts/2021-07-20_us_droughts.png)
+
+### [2021/27](https://github.com/alcazar90/TidyTuesday/tree/main/2021/2021-06-29_animal_rescues) ⛑️ 🐈 Animal Rescues by [London.gov](https://data.london.gov.uk/dataset/animal-rescue-incidents-attended-by-lfb)
 
 ![./2021/2021-06-29_animal_rescues/2021-06-29_animal_rescues.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-06-29_animal_rescues/2021-06-29_animal_rescues.png)
 
