@@ -4,7 +4,7 @@
 
 **Lessons that I learned during this challenge:**
 
-1. **Use `sysfonts::font_add_google(name = "font_name"` for download and used fonts for google fonts. **
+1. **Use `sysfonts::font_add_google(name = "font_name"` for download and used fonts for google fonts**.
 
    ```R
    sysfonts::font_add_google(name = "Tiitillium Web")
@@ -27,8 +27,6 @@
                                 top = 0.20,
                                 clip = FALSE))
    ```
-
-   
 
 ![./2021/2021-07-27_olympic_medals/2021-07-27_olympic_timeline.png](https://github.com/alcazar90/TidyTuesday/blob/main/2021/2021-07-27_olympic_medals/2021-07-27_olympic_timeline.png)
 
