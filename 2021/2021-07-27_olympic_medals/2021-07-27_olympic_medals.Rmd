@@ -1,0 +1,629 @@
+---
+title: "TidyTuesday 2021-07-2 - Olympic Medals"
+author: "Cristóbal Alcázar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r toy-tools, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggtext)
+library(patchwork)
+library(png)
+
+# setting the font
+sysfonts::font_add_google(name = "Titillium Web")
+showtext::showtext_auto()
+
+theme_set(theme_minimal(base_family = "Titillium Web", 
+                        base_size = 16))
+```
+
+```{r read-data}
+olympics <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-07-27/olympics.csv')
+
+# import olympic logo
+img <- png::readPNG("olympic-rings.png", TRUE)
+
+```
+
+```{r eda}
+# Beisball and softball were excluded from the olympic games from Pekin 2008
+# until Tokeo 2021.
+sport_timeline <- olympics %>% 
+  filter(season == "Summer") %>% 
+  group_by(sport) %>% 
+  summarise(start = min(year), end = max(year)) %>% 
+  mutate(continue = as.double(end == 2016),
+         first_sports = as.double(start == 1896),
+         art = as.double(sport == "Art Competitions"),
+         description = case_when(sport %in% c("Baseball", "Softball") ~ 
+                                   "Exclude from Pekin 2008 until Tokyo 2021",
+                                 sport == "Art Competitions" ~ 
+                                   "After '48 they were migrated to the Olympic Cultural Programme",
+                                 TRUE ~ "None"))
+
+
+# added sport
+add_sport <- sport_timeline %>% 
+  filter(first_sports == 0, continue == 1) %>% 
+  group_by(start) %>% 
+  count %>% 
+  left_join(ol_dev, by = c("start" = "year")) %>% 
+  mutate(remove = 0) %>% 
+  ungroup
+
+# added sport that didn't continue at the olympic 2016
+add_sport2 <- sport_timeline %>% 
+  filter(first_sports == 0, continue == 0) %>% 
+  group_by(start) %>% 
+  count %>% 
+  left_join(ol_dev, by = c("start" = "year")) %>% 
+  mutate(remove = 1) %>% 
+  ungroup
+
+add_sport <- bind_rows(add_sport, add_sport2)
+
+# create a list of tibbles with height points
+add_points <- vector(mode = "list", length = length(unique(add_sport$start)))
+top <- 50
+step <- 2
+
+# iterate by year...
+i <- 1
+for (y in unique(add_sport$start)) {
+  NUM_SPORTS <- sum(add_sport[add_sport$start == y, "n.x"])
+  REMOVE <- add_sport[(add_sport$start == y) & (add_sport$remove == 1), "n.x"]
+  if (nrow(REMOVE) == 0) REMOVE <- 0
+  print(y)
+  print(NUM_SPORTS)
+  print(REMOVE)
+  print("----")
+  add_points[[i]] <- tibble(
+    year = y,
+    height = top - 1:NUM_SPORTS * step,
+    remove = c(rep(0, (NUM_SPORTS - REMOVE)), rep(1, REMOVE))
+  )
+  i <- i + 1
+}
+
+add_points <- bind_rows(add_points)
+
+# sub sport
+sub_sport <- sport_timeline %>% 
+  filter(continue == 0) %>% 
+  group_by(end) %>% 
+  count() %>% 
+  left_join(ol_dev, by = c("end"="year")) 
+
+
+sub_points <- vector(mode = "list", length = nrow(sub_sport))
+top <- -10
+step <- 2
+
+# add + 4 to the height because indicate from what year the sport isn't 
+# in the olympic. Remember start/end extract from year register output.
+# Note: 1936 the next olympic game was in 1948 given the WW2
+for (i in 1:nrow(sub_sport)) {
+  sub_points[[i]] <- tibble(
+    year =  sub_sport$end[i] + ifelse(sub_sport$end[i] == 1936, 12, 4), 
+    height = top + 1:sub_sport$n.x[i] * step 
+    )
+}
+sub_points <- dplyr::bind_rows(sub_points)
+
+
+# olympic's sport per year 
+ol_dev <- olympics %>% 
+  filter(season == "Summer") %>% 
+  distinct(year, sport) %>% 
+  arrange(year) %>% 
+  group_by(year) %>% 
+  count 
+
+
+# MIN-MAX vertical lines between add/sub sports triangles
+v_axis <- 
+  add_points %>% 
+  bind_rows(sub_points) %>% 
+  group_by(year) %>% 
+  summarize(min_h = min(height),
+            max_h = max(height)) %>% 
+  left_join(ol_dev, by = "year") %>% 
+  mutate(middle = case_when((n > min_h) & (n < max_h) ~ 1,
+                            TRUE ~ 0),
+         only_upper = case_when((min_h > 0) & (max_h > 0) ~ 1,
+                                TRUE ~ 0),
+         only_lower = case_when((min_h < 0) & (max_h < 0) ~ 1,
+                                TRUE ~ 0),
+         y = case_when(middle == 1 ~ min_h,
+                         only_upper == 1 ~ as.double(n),
+                         only_lower == 1 ~ min_h),
+         yend = case_when(middle == 1 ~ max_h,
+                          only_upper == 1 ~ max_h,
+                          only_lower == 1 ~ as.double(n)))
+
+
+# year-labels
+nines <- olympics %>% 
+  filter(season == "Summer") %>% 
+  distinct(year) %>% 
+  filter(str_extract(year, "..") == "19") %>% 
+  arrange(year) %>% 
+  mutate(year_label = str_extract(year, "..$"))
+
+
+x_labs <- tibble(
+       x = c(1893, 1899, nines$year[-1],
+             2000, 2004, 2008, 2012, 2016),
+       y = c(10.8, 21.5, 20, 10.8, 26, 14.7, 27.3, 17.7, 14.7, 20.5,
+             26.3, 17.7, 21.3, 16.7, 21.3, 23.3, 18, 25.3, 25.3, 25.3, 
+             27.3, 29.3, 31.3, 33.3,
+             36, 31.7, 36, 30, 36),
+       year_label = c("1896", "1900", nines$year_label[-1],
+                      "2000", "04", "08", "12", "2016"),
+       pos = 1:29,
+       size = c("major", "major", rep("minor", 22), "major", rep("minor", 3),
+                "major"))
+
+# Olympic colour palette 
+pal <- c("Blue"= "#014b88", "Yellow" = "#fbb22e", "Black" = "#000000", 
+         "Green" = "#168c39", "Red" = "#ee2f4d")
+
+# VISUALIZATION: 
+p <-
+ol_dev %>% 
+  ggplot +
+  geom_line(aes(year, n),
+            colour = "black",
+            size = 1.4) +
+  geom_point(aes(year, n),
+            colour = "black",
+            size = 2) +
+  scale_colour_gradient(low = pal["Blue"], high = pal["Yellow"]) +
+  # y-axis ticks and marks
+  geom_segment(aes(x = 1860, y = min(n)-2, xend=1860, yend = max(n)+2),
+               data = ol_dev) + 
+  geom_segment(aes(x = 1859.5, y = n, xend=1860.5, yend = n),
+               data = filter(ol_dev,
+                             year %in% c(1896, 1906, 1920, 1928, 1972, 2016))) + 
+  geom_text(aes(x = 1858, y = n, label = n),
+               data = filter(ol_dev,
+                             year %in% c(1896, 1906, 1920, 1928, 1972, 2016))) + 
+  geom_text(aes(x = 1847, y = 22, label = "Number of\nsports"),
+            #colour = pal["Blue"],
+            size = 4) +
+  # add horizontal-grid lines 
+  geom_segment(aes(x = 1859, y = n, xend = year, yend = n),
+               lty = 3,
+               size = .4,
+               alpha = .6,
+               data = filter(ol_dev,
+                             year %in% c(1896, 1906, 1920, 1928, 1972, 2016))) + 
+  # add vertical-grid lines
+  geom_segment(aes(x = year, y = y, xend = year, yend = yend),
+               lty = 3,
+               size = .4,
+               alpha = .6,
+               data = v_axis) + 
+  # add/sub sport triangles 
+  geom_point(aes(year, height),
+             shape = 24,
+             size = 1.6,
+             colour = pal["Green"],
+             fill = pal["Green"],
+             data = filter(add_points, remove == 0)) +
+  geom_point(aes(year, height),
+             shape = 24,
+             size = 1.6,
+             colour = pal["Yellow"],
+             fill = pal["Yellow"],
+             data = filter(add_points, remove == 1)) +
+  geom_point(aes(year, height),
+             shape = 25,
+             size = 1.6,
+             colour = pal["Red"],
+             fill = pal["Red"],
+             data = sub_points) +
+  # add triangle-legends
+  geom_text(aes(x = year, y = n, label = label),
+            size = 2.6,
+            fontface = "italic",
+            data =
+              tibble(
+                year = 1870,
+                n = -28,
+                label = "(*): A red triangle marks the first game in which a given sport is not included in the event"
+              )) +
+  # add (*) disclaimer 
+  geom_text(aes(x = year, y = n, label = label),
+            size = 3.4,
+            #colour = pal["Blue"],
+            data =
+              tibble(
+                year = c(1852, 1860, 1868.7, 1860),
+                n = c(42, 45.2, 42, 39.8),
+                label = c("In", "In\neventually-out", "Out (*)", "Sport")
+              )) +
+  geom_point(aes(x = 1855, y = 42),
+            shape = 24,
+            size = 2.1,
+            colour = pal["Green"],
+            fill = pal["Green"]
+            ) +
+  geom_point(aes(x = 1860, y = 42),
+            shape = 24,
+            size = 2.1,
+            colour = pal["Yellow"],
+            fill = pal["Yellow"]
+            ) +
+  geom_point(aes(x = 1865, y = 42.2),
+            shape = 25,
+            size = 2.1,
+            colour = pal["Red"],
+            fill = pal["Red"]
+            ) +
+  geom_point(aes(x = 1855, y = 42),
+            shape = 24,
+            size = 2.1,
+            colour = pal["Green"],
+            fill = pal["Green"]
+            ) +
+  geom_point(aes(x = 1860, y = 42),
+            shape = 24,
+            size = 2.1,
+            colour = pal["Yellow"],
+            fill = pal["Yellow"]
+            ) +
+  geom_point(aes(x = 1865, y = 42.2),
+            shape = 25,
+            size = 2.1,
+            colour = pal["Red"],
+            fill = pal["Red"]
+            ) +
+  # art-period bracket
+  geom_segment(aes(x = start, y = 5, xend = end, yend=5),
+               lineend = "round",
+               colour = pal["Yellow"],
+               lwd=.7,
+               data = filter(sport_timeline, art == 1)) +
+  geom_text(aes(x = end, y = 4, label = description),
+            size = 3.2,
+            data = filter(sport_timeline, art == 1)) +
+  geom_text(aes(x = end-28, y = 6, label = "Art Competition"),
+            size = 3.2,
+            data = filter(sport_timeline, art == 1)) +
+  # SPORT SOTCK START/END (Draw in circles) 
+  # ----------------------------------------
+  # segment to connect START/END circles
+  geom_segment(aes(x = 1896, xend = 1870, y = 9, yend = -8),
+               lty = 2, size = .2, alpha = .6) +
+  geom_segment(aes(x = 2016, xend = 2050, y = 34, yend = 8),
+               lty = 2, size = .2, alpha = .6) +
+  # initial and final point
+  geom_point(aes(year, n),
+             shape = 21,
+             size = 4,
+             fill = "white",
+             colour = "black",
+             data = tibble(year= c(min(ol_dev$year),
+                                   max(ol_dev$year)),
+                           n= c(min(ol_dev$n),
+                              max(ol_dev$n)))) +
+  # draw START/END circles
+  geom_point(aes(x=1870, y = -8),
+             shape = 21,
+             stroke = 3.2,
+             colour = "#0286c3",
+             fill = "grey90",
+             size=50) +
+  geom_point(aes(x=2050, y = 8),
+             shape = 21,
+             stroke = 3.2,
+             colour = pal["Green"],
+             fill = "grey90",
+             size=130) +
+  geom_point(aes(x=2060, y = 12),
+             shape = 21,
+             stroke = 3.2,
+             colour = "#0286c3",
+             fill = "grey90",
+             size=50) +
+  # SPORT STOCK 1896 labels:
+  # translate the initial 9 labels +60years + 20n
+  geom_text(aes(x = year, y = n, label = label),
+            size = 2.8,
+            data =
+              tibble(
+                year = c(1870, 1873, 1865, 1873, 
+                         1866, 1874, 1864, 1872, 
+                         1868),
+                n = -c(8, 5.8, 4.9, 3.9, 
+                       3.2, 10, 10.2, 13, 
+                       15),
+                label = c("Athletics", "Cycling", "Fencing", "Gymnastics",
+                          "Shooting", "Swimming", "Tennis", "Weightlifting",
+                          "Wrestling")
+              )) +
+  # SPORT STOCK 2016 labels:
+  geom_text(aes(x = year, y = n, label = label),
+            size = 2.8,
+            data =
+              tibble(
+                year = c(1870, 1873, 1865, 1873, 
+                         1866, 1874, 1864, 1872, 
+                         1868) + 190,
+                n = -c(8, 5.8, 4.9, 3.9, 
+                       3.2, 10, 10.2, 13, 
+                       15) + 20,
+                label = c("Athletics", "Cycling", "Fencing", "Gymnastics",
+                          "Shooting", "Swimming", "Tennis", "Weightlifting",
+                          "Wrestling")
+              )) +
+  geom_text(aes(x = year, y = n, label = label),
+            size = 2.8,
+            data = 
+              tibble(
+                year = c(2039, 2046, 2046, 2043,
+                         2038, 2046, 2043, 2041,
+                         2033.5, 2068.3, 2047, 2035,
+                         2032, 2035, 2045, 2057,
+                         2066.4, 2048, 2052.5, 2045.2,
+                         2056, 2039, 2056, 2055, 2057),
+                n = c(-7.8, 4.7, -11, 2,
+                      20.3, 15, 17, -2.6,
+                      3.6, 3.3, 27, 6.9,
+                      16, 10, 23.3, -12,
+                      -1.2, 18.8, -6.8, 8,
+                      1.6, 12.8, -2.9, 22.4, 25.4),
+                label = c("Archery", "Badminton", "Basketball", "Beach Volleyball",
+                          "Boxing", "Canoeing", "Diving", "Equestrianism",
+                          "Football", "Golf", "Handball", "Hockey", 
+                          "Judo", "Modern Pentathlon", "Rhytmic Gymnastics", "Rowing",
+                          "Rugby Sevens", "Sailing", "Synchronized Swimming", "Table Tennis", 
+                          "Taekwondo", "Trampolining", "Triathlon", "Voleyball", "Water Polo")
+              )) +
+  # IN / IN-OUT / OUT SPORT LABELS (TRIANGLES)
+  # ------------------------------------------
+  # in-1900
+  geom_text(aes(x = year - 5, y = height, label = label),
+            size = 2.4,
+            data = bind_cols(
+              filter(add_points, year == 1900),
+              tibble(
+                label = c("Archery", "Equestrianism", "Footbal", 
+                          "Golf", "Rowing", "Sailing", "Water Polo",
+                          "Basque Pelota", "Cricket", "Croquet", 
+                          "Polo", "Rugby", "Tug-Of-War")
+              )
+            )) +
+  # in 1904
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1904,
+              height = c(50, 52, 40, 38),
+              label = c("Boxing", "Diving", "Lacrosse", "Roque")
+            )) +
+  # in 1908
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1908,
+              height = c(54, 36, 34, 32, 30),
+              label = c("Hockey", "Racquets", "Figure Skating", "Jeu De Paume", 
+                        "Motorboating")
+            )) +
+  # in 1912
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1912,
+              height = c(51, 43),
+              label = c("Modern\nPentathlon", "Art\n  Competitions")
+            )) +
+  # in 1920
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1920,
+              height = 46,
+              label = "Ice Hockey"
+            )) +
+  # in 1932
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1932,
+              height = 46,
+              label = "Alpinism"
+            )) +
+  # in 1936
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = c(1936, 1936, 1940, 1940),
+              height = c(50, 40, 46, 44),
+              label = c("Basketball", "Aeronautics", "Handball", "Canoeing")
+            )) +
+  # in 1964
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1960,
+              height = c(48, 46),
+              label = c("Judo", "Volleyball")
+            )) +
+  # in 1984
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1976,
+              height = c(48, 46),
+              label = c("Rhythmic Gymnastics", "Synchronized Swimming")
+            )) +
+  # in 1988
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1988,
+              height = 51,
+              label = c("Table\nTennis"),
+            )) +
+  # in 1992
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1992,
+              height = c(53, 44),
+              label = c("Badminton", "Baseball"),
+            )) +
+  # in 1996
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1996,
+              height = c(51, 42),
+              label = c("Beach\n Volleyball", "Softball"),
+            )) +
+  # in 2000
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 2005,
+              height = c(48, 46, 44),
+              label = c("Taekwondo", "Trampolining", "Triathlon"),
+            )) +
+  # in 2016
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 2016,
+              height = 50,
+              label = "Rugby Sevens"
+            )) +
+  # out 1904
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1898,
+              height = c(-4, -6, -8),
+              label = c("Cricket", "Croquet", "Basque Pelota")
+            )) +
+  # out 1908
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1908,
+              height = c(-6),
+              label = c("Roque")
+            )) +
+  # out 1912
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = c(1912, 1912, 1916, 1916),
+              height = c(-10, 0, -4, -6),
+              label = c("Jeu De Paume", "Motorboating", "Lacrosse", "Racquets")
+            )) +
+  # out 1924
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1924,
+              height = c(-10, -2, 0),
+              label = c("Figure Skating", "Ice Hockey", "Tug-of-War")
+            )) +
+  
+  # out 1928
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1928,
+              height = -6,
+              label = "Rugby"
+            )) +
+  # out 1948
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1944,
+              height = c(-8, -6, -4),
+              label = c("Alpinism", "Aeronautics", "Polo")
+            )) +
+  # out 1952: check art... 
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 1952,
+              height = -10,
+              label = "Art Competitions"
+            )) +
+  # out 2012
+  geom_text(aes(x = year, y = height, label = label),
+            size = 2.4,
+            data = tibble(
+              year = 2012,
+              height = c(-10, -4),
+              label = c("Softball", "Baseball")
+            )) +
+  # WWII annotation 
+  # ------------------------------
+  geom_point(aes(x=1945, y = 26),
+             shape = 21,
+             stroke = 2.6,
+             colour = pal["Red"],
+             fill = "grey90",
+             size=10) +
+  geom_text(aes(x=1945, y = 26, label = "WWII"),
+            size = 2) +
+  # x-axis YEAR labels
+  # ------------------
+  geom_text(aes(x = x, y = y, label = year_label),
+            colour = "black",
+            fontface = "bold",
+            size = 5,
+            data = filter(x_labs, size=="major")) +
+  geom_text(aes(x = x, y = y, label = year_label),
+            #colour = pal["Blue"],
+            colour = "black",
+            fontface = "bold",
+            size = 3.5,
+            data = filter(x_labs, size=="minor")) +
+  labs(title = "Explore the Summer Olympic's Sport Timeline\n1896-2016",
+       x = NULL, 
+       y = NULL,
+       caption = "Source: rgriffin on Kaggle | @vamos_alcazar") +
+  # Plot settings
+  # ------------------
+  # expand axis limits
+  scale_y_continuous(lim = c(-30, 55)) +
+  scale_x_continuous(lim = c(1847, 2070)) +
+  # theme setting
+  theme(
+    panel.grid = element_blank(),
+    legend.position = "none",
+    axis.text = element_blank(),
+    plot.title = element_text(colour = "black",
+                              hjust = .46,
+                              size = 35),
+    plot.caption = element_text(size = 13),
+    plot.background = element_rect(fill = "grey90",
+                                   colour =NULL) 
+  )
+
+# add olympic logo
+(p + inset_element(img, 
+                   left = 0.06, 
+                   bottom = 0.05, 
+                   right = 0.90, 
+                   top = 0.20, clip = FALSE))
+
+ggsave("2021-07-27_olympic_timeline.png", dpi=320, width = 19, height = 9.2)
+```
+
+
+
